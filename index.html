@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자산 배분 게임</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+        .input-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            max-width: 100%;
+        }
+        .input-group label {
+            flex: 1 1 100%;
+            margin-bottom: 5px;
+        }
+        .input-group input[type="number"] {
+            flex: 1 1 calc(60% - 10px);
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .input-group button {
+            flex: 1 1 calc(20% - 10px);
+            padding: 10px;
+            margin: 2%;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .result-group {
+            margin-top: 20px;
+        }
+        .result-group div {
+            margin-bottom: 10px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 15px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .error-message {
+            color: red;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .total-message {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .remaining-assets {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>자산 배분 게임</h1>
+
+        <div class="error-message" id="errorMessage" style="display: none;">각 자산별 투자 금액은 현재 총자산의 합과 같아야 합니다.</div>
+        <div class="error-message" id="cashErrorMessage" style="display: none;">현금은 연간 생활비 이상 준비되어 있어야 합니다.</div>
+
+        <div class="input-group">
+            <label>총 자산: <span id="initialAssets">30000</span> (단위: 만 원)</label>
+            <label>생활비: <span id="livingCost">150</span> (단위: 만 원)</label>
+            <label>투자 기간: <span id="investmentPeriod">0</span> (단위: 횟수)</label>
+            <label>배분 되지 않은 자산: <span id="remainingAssets" class="remaining-assets">0</span> (단위: 만 원)</label>
+        </div>
+
+        <div class="input-group">
+            <label>현금 <span id="cashRequired"></span></label>
+    <div>현재: <span id="cashCurrent">30000</span> 만 원</div>
+    <input type="number" id="cashAdjustment" value="30000" min="0" placeholder="조정 금액" oninput="updateAdjustmentPercentage()">
+    <div>자산 비중: <span id="cashPercentage">100</span>%</div>
+    <button onclick="setMinimumCash()">최소 금액</button> <!-- 최소 금액 버튼 추가 -->
+    <button onclick="setEmergencyFund()">비상금 포함</button> <!-- 비상금 포함 버튼 추가 -->
+        </div>
+
+        <div class="input-group">
+            <label>채권</label>
+            <div>현재: <span id="bondCurrent">0</span> 만 원</div>
+            <input type="number" id="bondAdjustment" value="0" min="0" placeholder="조정 금액" oninput="updateAdjustmentPercentage()">
+            <div>자산 비중: <span id="bondPercentage">0</span>%</div>
+            <button onclick="adjustAmount('bond', 10)">+10%</button>
+            <button onclick="adjustAmount('bond', -10)">-10%</button>
+        </div>
+
+        <div class="input-group">
+            <label>주식</label>
+            <div>현재: <span id="stockCurrent">0</span> 만 원</div>
+            <input type="number" id="stockAdjustment" value="0" min="0" placeholder="조정 금액" oninput="updateAdjustmentPercentage()">
+            <div>자산 비중: <span id="stockPercentage">0</span>%</div>
+            <button onclick="adjustAmount('stock', 10)">+10%</button>
+            <button onclick="adjustAmount('stock', -10)">-10%</button>
+        </div>
+
+        <div class="input-group">
+            <label>금</label>
+            <div>현재: <span id="goldCurrent">0</span> 만 원</div>
+            <input type="number" id="goldAdjustment" value="0" min="0" placeholder="조정 금액" oninput="updateAdjustmentPercentage()">
+            <div>자산 비중: <span id="goldPercentage">0</span>%</div>
+            <button onclick="adjustAmount('gold', 10)">+10%</button>
+            <button onclick="adjustAmount('gold', -10)">-10%</button>
+        </div>
+
+        <button onclick="invest()">투자 결정</button>
+        <button onclick="resetGame()">초기화 하기</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>기간</th>
+                    <th>총자산 (만 원)</th>
+                    <th>생활비(만 원)</th>
+                    <th>수익률 (%)</th>
+                </tr>
+            </thead>
+            <tbody id="historyTable">
+                <!-- 기록이 여기에 추가됩니다 -->
+            </tbody>
+        </table>
+<button onclick="endGameAndShowResults()">결과 보기</button>
+    </div>
+
+    <script>
+        let iterationCount = 0;
+        let eventCount = 0;
+        let assetsHistory = [];
+        let maxIterations = Math.floor(Math.random() * (50 - 30 + 1)) + 30;
+
+        function updateCashRequired() {
+            const livingCost = parseFloat(document.getElementById('livingCost').innerText);
+            const cashRequired = livingCost * 12;
+            document.getElementById('cashRequired').innerText = `(*연간 생활비 ${cashRequired.toFixed(0)} 만 원)`;
+            return cashRequired;
+        }
+
+        // 게임 규칙 설명 메시지
+        function showGameRules() {
+            alert(
+                "초기 자산으로 부터 최대한 오랜 투자 기간을 살아 남는 게임입니다.\n" +
+                "파산 없이 투자 기간을 마무리해보세요.\n\n" +
+                "※ 게임 규칙\n" +
+                "- 생활비는 매년 3%씩 증가\n" +
+                "- 최소 생활비의 12회 만큼 현금보유 필요\n" +
+                "- 비상금은 6개월치 추가 현금을 보유\n" +
+                "- 비상금이 없을 경우 10%확률로 이벤트 발생\n" +
+                "- 이벤트 발생시 생활비의 10배만큼 손실\n" +                
+
+                "○각자산별 수익률\n" +          
+                "- 현금 : 2%의 고정 수익\n" +
+                "- 채권 : 95%확률 +5%, 5%확률 -10%\n" +
+                "- 주식 : 70%확률 +25%, 20%확률 -20%, 10%확률 -40%\n" +
+                "- 금 : 기본 1%수익, 주식 하락시 +15% 수익\n" +
+
+                "- 파산하거나 투자기간이 끝나면 게임 종료\n" +
+                "- 투자기간은 30~50회 랜덤"
+            );
+        }
+
+        function updateAssets() {
+            let cash = parseFloat(document.getElementById('cashCurrent').innerText);
+            let bond = parseFloat(document.getElementById('bondCurrent').innerText);
+            let stock = parseFloat(document.getElementById('stockCurrent').innerText);
+            let gold = parseFloat(document.getElementById('goldCurrent').innerText);
+
+            let totalAssets = cash + bond + stock + gold;
+            document.getElementById('initialAssets').innerText = totalAssets.toFixed(0);
+        }
+
+        function updateAdjustmentPercentage() {
+            let totalAssets = parseFloat(document.getElementById('initialAssets').innerText);
+
+            let cashAdjustment = parseFloat(document.getElementById('cashAdjustment').value) || 0;
+            let bondAdjustment = parseFloat(document.getElementById('bondAdjustment').value) || 0;
+            let stockAdjustment = parseFloat(document.getElementById('stockAdjustment').value) || 0;
+            let goldAdjustment = parseFloat(document.getElementById('goldAdjustment').value) || 0;
+
+            document.getElementById('cashPercentage').innerText = ((cashAdjustment / totalAssets) * 100).toFixed(2);
+            document.getElementById('bondPercentage').innerText = ((bondAdjustment / totalAssets) * 100).toFixed(2);
+            document.getElementById('stockPercentage').innerText = ((stockAdjustment / totalAssets) * 100).toFixed(2);
+            document.getElementById('goldPercentage').innerText = ((goldAdjustment / totalAssets) * 100).toFixed(2);
+
+            // 배분되지 않은 자산 계산
+            let remainingAssets = totalAssets - (cashAdjustment + bondAdjustment + stockAdjustment + goldAdjustment);
+            document.getElementById('remainingAssets').innerText = remainingAssets.toFixed(0);
+        }
+
+
+ function setMinimumCash() {
+        const cashRequired = updateCashRequired();
+        document.getElementById('cashAdjustment').value = cashRequired;
+        updateAdjustmentPercentage();
+    }
+
+
+ // 비상금 포함 버튼: 생활비의 18배 현금 설정
+    function setEmergencyFund() {
+        const emergencyFund = updateCashRequired() * 1.5; // 생활비의 18배
+        document.getElementById('cashAdjustment').value = emergencyFund.toFixed(0);
+        updateAdjustmentPercentage();
+    }
+
+
+        function adjustAmount(asset, percent) {
+            let totalAssets = parseFloat(document.getElementById('initialAssets').innerText);
+            let remainingAssets = parseFloat(document.getElementById('remainingAssets').innerText);
+            let adjustmentField = document.getElementById(asset + 'Adjustment');
+            let currentValue = parseFloat(adjustmentField.value) || 0;
+            let adjustmentValue = (totalAssets * (percent / 100)).toFixed(0);
+
+            // 조정 값이 0원 이상이고 배분되지 않은 자산보다 크지 않도록 제한
+            let newValue = currentValue + parseFloat(adjustmentValue);
+            if (newValue >= 0 && newValue <= remainingAssets + currentValue) {
+                adjustmentField.value = newValue;
+            } else if (newValue < 0) {
+                adjustmentField.value = 0;
+            } else {
+                adjustmentField.value = remainingAssets + currentValue;
+            }
+
+            updateAdjustmentPercentage();
+        }
+
+        function invest() {
+            let cash = parseFloat(document.getElementById('cashAdjustment').value);
+            let bond = parseFloat(document.getElementById('bondAdjustment').value);
+            let stock = parseFloat(document.getElementById('stockAdjustment').value);
+            let gold = parseFloat(document.getElementById('goldAdjustment').value);
+
+            // 자산이 모두 입력되었는지 확인
+            if (isNaN(cash) || isNaN(bond) || isNaN(stock) || isNaN(gold)) {
+                document.getElementById('errorMessage').style.display = 'block';
+                return;
+            }
+
+
+            let totalAssets = parseFloat(document.getElementById('initialAssets').innerText);
+            let adjustmentTotal = cash + bond + stock + gold;
+            let livingCost = parseFloat(document.getElementById('livingCost').innerText);
+            let cashRequired = updateCashRequired();
+
+
+
+
+
+    // 배분되지 않은 자산 계산
+    let remainingAssets = totalAssets - adjustmentTotal;
+
+    // 배분되지 않은 자산이 있으면 현금 비중에 추가
+    if (remainingAssets > 0) {
+        cash += remainingAssets;
+        document.getElementById('cashAdjustment').value = cash.toFixed(0);
+        adjustmentTotal = cash + bond + stock + gold; // 조정된 총합을 다시 계산
+        updateAdjustmentPercentage(); // UI 업데이트
+    }
+
+
+
+
+
+    // 현금이 생활비의 18배 미만일 때 10% 확률로 이벤트 발생
+    if (cash < cashRequired * 1.5 && Math.random() < 0.1) {
+        const eventMessages = [
+            "질병에 걸렸는데 비상금이 없었다. 자산을 급하게 매각해 손해를 봤다.",
+            "교통 사고가 났는데 비상금이 없었다. 자산을 급하게 매각해 손해를 봤다.",
+            "아들이 사고를 쳤는데 비상금이 없었다. 자산을 급하게 매각해 손해를 봤다."
+        ];
+        const eventMessage = eventMessages[Math.floor(Math.random() * eventMessages.length)];
+        alert(eventMessage);
+
+  // 주식 또는 채권에서 생활비의 10배만큼 금액을 감소
+        let reductionAmount = livingCost * 10;
+        if (stock >= reductionAmount) {
+            stock -= reductionAmount;
+            document.getElementById('stockAdjustment').value = stock.toFixed(0);
+        } else if (bond >= reductionAmount) {
+            bond -= reductionAmount;
+            document.getElementById('bondAdjustment').value = bond.toFixed(0);
+        } else {
+            // 주식과 채권 모두 부족한 경우 남은 자산에서 차감
+            if (stock > 0) {
+                reductionAmount -= stock;
+                stock = 0;
+                document.getElementById('stockAdjustment').value = stock.toFixed(0);
+            }
+            if (bond > 0) {
+                reductionAmount -= bond;
+                bond = 0;
+                document.getElementById('bondAdjustment').value = bond.toFixed(0);
+            }
+        }
+        updateAdjustmentPercentage(); // UI 업데이트
+    }
+
+
+
+
+
+
+            // 현금이 생활비의 12배보다 적은 경우
+            if (cash < cashRequired) {
+                document.getElementById('cashErrorMessage').style.display = 'block';
+                return;
+            } else {
+                document.getElementById('cashErrorMessage').style.display = 'none';
+            }
+
+
+
+
+
+    // 자산 합이 현재 총 자산과 일치하는지 확인 (경고 메시지는 삭제)
+    if (adjustmentTotal !== totalAssets) {
+        document.getElementById('errorMessage').style.display = 'block';
+        return;
+    } else {
+        document.getElementById('errorMessage').style.display = 'none';
+    }
+
+
+// 주식 수익률 계산: 70% 확률로 +25%, 25% 확률로 -20%, 5% 확률로 -50%
+    let stockRandom = Math.random();
+    let stockReturn = 0;
+    if (stockRandom < 0.70) {
+        stockReturn = 0.25;  // 70% 확률로 +25%
+    } else if (stockRandom < 0.90) {
+        stockReturn = -0.20; // 25% 확률로 -20%
+    } else {
+        stockReturn = -0.40; // 10% 확률로 -40%
+    }
+
+    // 다른 자산의 수익률 계산
+    let cashReturn = cash > 0 ? 0.02 : 0;
+    let bondReturn = bond > 0 ? (Math.random() < 0.95 ? 0.05 : -0.10) : 0;
+    let goldReturn = gold > 0 ? (stockReturn < 0 ? 0.15 : 0.01) : 0;
+
+
+
+
+            // 자산별 현재가치 계산
+            let newCash = (cash - cashRequired) * (1 + cashReturn);
+            let newBond = bond * (1 + bondReturn);
+            let newStock = stock * (1 + stockReturn);
+            let newGold = gold * (1 + goldReturn);
+
+            // 각 자산의 비중에 따른 수익률 합계 계산
+            let totalReturn = ((cashReturn * cash) + (bondReturn * bond) + (stockReturn * stock) + (goldReturn * gold)) / totalAssets;
+
+            // 총 자산 계산
+            let newAssets = newCash + newBond + newStock + newGold;
+
+
+    // 파산 조건 확인
+    if (newAssets < cashRequired) {
+        alert("파산 했습니다! 총 자산이 연간 생활비 보다 적게 남았습니다.");
+        
+        // 결과 페이지로 데이터 전송
+        localStorage.setItem("assetsHistory", JSON.stringify(assetsHistory));
+        localStorage.setItem("totalIterations", iterationCount);
+        localStorage.setItem("eventCount", eventCount);
+
+        // 결과 페이지로 이동
+        window.location.href = "result.html";
+        return;
+    }
+
+            // 생활비 증가 (3%)
+            livingCost = (livingCost * 1.03).toFixed(0);
+
+            // 안내 메시지 표시
+            alert(
+                `투자 횟수: ${iterationCount + 1}\n` +
+                `현금 수익률: ${(cashReturn * 100).toFixed(2)}%\n` +
+                `채권 수익률: ${(bondReturn * 100).toFixed(2)}%\n` +
+                `주식 수익률: ${(stockReturn * 100).toFixed(2)}%\n` +
+                `금 수익률: ${(goldReturn * 100).toFixed(2)}%\n` +
+                `단일 시행 수익률 합계: ${(totalReturn * 100).toFixed(2)}%\n` +
+                `총 자산: ${newAssets.toFixed(0)} 만 원`
+            );
+
+            // 업데이트된 자산 및 생활비 표시
+            document.getElementById('cashCurrent').innerText = newCash.toFixed(0);
+            document.getElementById('bondCurrent').innerText = newBond.toFixed(0);
+            document.getElementById('stockCurrent').innerText = newStock.toFixed(0);
+            document.getElementById('goldCurrent').innerText = newGold.toFixed(0);
+            document.getElementById('initialAssets').innerText = newAssets.toFixed(0);
+            document.getElementById('livingCost').innerText = livingCost;
+
+            // 조정 입력 값 초기화
+            document.getElementById('cashAdjustment').value = 0;
+            document.getElementById('bondAdjustment').value = 0;
+            document.getElementById('stockAdjustment').value = 0;
+            document.getElementById('goldAdjustment').value = 0;
+            updateAdjustmentPercentage();
+
+            // 시행번호 증가 및 투자 기간 업데이트
+            iterationCount++;
+            document.getElementById('investmentPeriod').innerText = iterationCount;
+
+            // 기록 추가
+            addRecordToHistory(iterationCount, newAssets.toFixed(0), livingCost, (totalReturn * 100).toFixed(2));
+
+            // 최대 시행 횟수 도달 시 종료
+            if (iterationCount >= maxIterations) {
+                alert("천수를 누렸다! 총 투자 기간: " + iterationCount + "회");
+
+                // 결과 페이지로 데이터 전송
+                localStorage.setItem("assetsHistory", JSON.stringify(assetsHistory));
+                localStorage.setItem("totalIterations", iterationCount);
+                localStorage.setItem("eventCount", eventCount);
+
+                // 결과 페이지로 이동
+                window.location.href = "result.html";
+                return;
+            }
+        }
+
+        function addRecordToHistory(iteration, assets, livingCost, weightedReturn) {
+            let tableBody = document.getElementById('historyTable');
+            let newRow = tableBody.insertRow();
+
+            let cell1 = newRow.insertCell(0);
+            let cell2 = newRow.insertCell(1);
+            let cell3 = newRow.insertCell(2);
+            let cell4 = newRow.insertCell(3);
+
+            cell1.innerHTML = iteration;
+            cell2.innerHTML = assets;
+            cell3.innerHTML = livingCost;
+            cell4.innerHTML = weightedReturn;
+
+
+   // assetsHistory에 기록 추가
+    assetsHistory.push({
+        iteration: iteration,
+        assets: parseFloat(assets),
+        livingCost: parseFloat(livingCost),
+        totalReturn: parseFloat(weightedReturn) / 100
+    });
+
+    console.log('assetsHistory:', assetsHistory); // 콘솔 로그로 기록 확인
+
+        }
+
+        // 초기화 기능
+        function resetGame() {
+            location.reload();
+        }
+
+        // 초기 상태 업데이트
+        updateAssets();
+        updateCashRequired();
+
+        // 게임 규칙 설명 메시지 띄우기
+        window.onload = function() {
+            showGameRules();
+        }
+
+
+
+
+    function endGameAndShowResults() {
+        // 현재까지의 게임 데이터를 저장하고 결과 페이지로 이동
+        localStorage.setItem('assetsHistory', JSON.stringify(assetsHistory));
+        localStorage.setItem('totalIterations', iterationCount);
+        localStorage.setItem('eventCount', eventCount);
+
+        // 결과 페이지로 이동
+        window.location.href = 'result.html';
+    }
+    </script>
+
+</body>
+</html>

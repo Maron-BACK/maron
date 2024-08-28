@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결과 페이지</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .result-section {
+            margin-top: 30px;
+        }
+        .result-section h2 {
+            text-align: center;
+        }
+        canvas {
+            margin-top: 20px;
+        }
+        .stats {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>결과 페이지</h1>
+
+        <div class="result-section">
+            <h2>총 자산 및 생활비 변화</h2>
+            <canvas id="assetsChart"></canvas>
+        </div>
+
+        <div class="result-section">
+            <h2>시행별 결과</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>시행번호</th>
+                        <th>단일 시행 수익률 (%)</th>
+                        <th>자산 금액 (만 원)</th>
+                        <th>생활비 총액 (만 원)</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTable">
+                    <!-- 데이터가 여기에 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="stats">
+            <p>총 평균 수익률: <span id="averageReturn"></span>%</p>
+        </div>
+
+        <button onclick="restartGame()">처음으로 돌아가기</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // localStorage에서 데이터를 가져오기
+        const assetsHistory = JSON.parse(localStorage.getItem('assetsHistory')) || [];
+        const totalIterations = localStorage.getItem('totalIterations') || 0;
+        const eventCount = localStorage.getItem('eventCount') || 0;
+
+        if (!assetsHistory.length) {
+            alert("게임 데이터가 없습니다. 메인 페이지로 돌아갑니다.");
+            window.location.href = 'index.html';
+        }
+
+        // 총 자산 및 생활비 변화를 그래프로 표시
+        const ctx = document.getElementById('assetsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({ length: assetsHistory.length }, (_, i) => i + 1),
+                datasets: [{
+                    label: '총 자산 (만 원)',
+                    data: assetsHistory.map(entry => entry.assets),
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    fill: false
+                },
+                {
+                    label: '생활비 (만 원)',
+                    data: assetsHistory.map(entry => entry.livingCost),
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '시행 횟수'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '금액 (만 원)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // 시행별 결과를 표에 추가
+        const resultsTable = document.getElementById('resultsTable');
+        let totalReturn = 0;
+
+        assetsHistory.forEach((record, index) => {
+            const row = resultsTable.insertRow();
+            const iterationCell = row.insertCell(0);
+            const returnCell = row.insertCell(1);
+            const assetsCell = row.insertCell(2);
+            const livingCostCell = row.insertCell(3);
+
+            iterationCell.textContent = index + 1;
+            returnCell.textContent = (record.totalReturn * 100).toFixed(2);
+            assetsCell.textContent = record.assets;
+            livingCostCell.textContent = record.livingCost;
+
+            totalReturn += record.totalReturn;
+        });
+
+        const averageReturn = (totalReturn / assetsHistory.length) * 100;
+        document.getElementById('averageReturn').textContent = averageReturn.toFixed(2);
+
+        function restartGame() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+    </script>
+
+</body>
+</html>
